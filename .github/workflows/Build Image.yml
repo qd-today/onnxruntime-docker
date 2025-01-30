@@ -1,0 +1,62 @@
+name: Publish Package
+on:
+  workflow_dispatch: {}
+  push:
+    paths-ignore:
+      - '.github/**'
+      - '**.md'
+    tags: ["*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Publish Package job
+
+    
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v4
+    -
+      name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    -
+      id: login-ghcr
+      name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }} # dockerServer Username 在setting创建secrets name=DOCKER_USERNAME  value=dockerid
+        password: ${{ secrets.GITHUB_TOKEN }} # dockerServer Token
+      continue-on-error: true
+    -
+      id: login-dockerhub
+      name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        registry: docker.io
+        username: ${{ secrets.DOCKER_USERNAME }} # dockerServer Username 在setting创建secrets name=DOCKER_USERNAME  value=dockerid
+        password: ${{ secrets.DOCKER_PASSWORD }} # dockerServer Token 在setting创建secrets name=DOCKER_PASSWORD  value=dockerToken
+      continue-on-error: true
+    -
+      id: meta
+      name: Docker meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          name=ghcr.io/${{ github.repository_owner }}/ddddocr,enable=${{ steps.login-ghcr.outcome == 'success' }}
+          name=docker.io/a76yyyy/ddddocr,enable=${{ steps.login-dockerhub.outcome == 'success' }}
+        tags: |
+          type=ref,event=tag
+    -
+      name: Publish Latest Package
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/386,linux/arm64,linux/amd64,linux/arm/v6,linux/arm/v7,linux/ppc64le,linux/s390x # 你准备构建的镜像平台
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
