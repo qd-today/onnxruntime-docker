@@ -45,14 +45,14 @@ options="net"
 
 # tests fail on arm 32 bit, see https://github.com/microsoft/onnxruntime/issues/16387
 case "$CARCH" in
-armhf|armv7) options="!check $options"; _extra_cxxflags="-Wno-overflow";  _extra_cflags="-flto=auto";;
-ppc64le) _extra_cflags="-fno-lto";;
-*) _extra_cflags="-flto=auto";;
+armhf|armv7) options="!check $options"; _extra_cxxflags="-Wno-overflow -flto=auto";  _extra_cflags="-flto=auto";;
+ppc64le) _extra_cxxflags="-fno-lto"; _extra_cflags="-fno-lto";;
+*) _extra_cxxflags="-flto=auto"; _extra_cflags="-flto=auto";;
 esac
 
 build() {
 	CFLAGS="$CFLAGS -O2 $_extra_cflags " \
-	CXXFLAGS="$CXXFLAGS $_extra_cxxflags -O2 -Wno-deprecated-declarations -Wno-error=template-id-cdtor -flto=auto -U_FORTIFY_SOURCE -Wno-unused-variable -Wno-unused-parameter" \
+	CXXFLAGS="$CXXFLAGS $_extra_cxxflags -O2 -Wno-deprecated-declarations -Wno-error=template-id-cdtor -U_FORTIFY_SOURCE -Wno-unused-variable -Wno-unused-parameter" \
 	LDFLAGS="$LDFLAGS -Wl,--copy-dt-needed-entries" \
 	cmake -S cmake -B build -G Ninja -Wno-dev \
 		-DCMAKE_BUILD_TYPE=None \

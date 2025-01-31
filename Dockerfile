@@ -28,7 +28,8 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/reposi
     && mkdir -p /pkgs/apk \
     && echo 'builder ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && echo "permit nopass :abuild" >> /etc/doas.d/doas.conf \
-    && adduser -D -G abuild builder && su builder -c 'abuild-keygen -a -n -i'
+    && adduser -D -G abuild builder \
+    && su builder -c 'abuild-keygen -a -n -i'
 
 COPY alpine/ /src/testing/onnxruntime
 RUN chown -R builder /pkgs /src
