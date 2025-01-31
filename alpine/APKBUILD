@@ -12,6 +12,7 @@ makedepends="
 	abseil-cpp-dev
 	bash
 	cmake
+	eigen-dev
 	gnu-libiconv-dev
 	gtest-dev
 	icu-dev
