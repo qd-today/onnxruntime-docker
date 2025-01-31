@@ -19,7 +19,6 @@ makedepends="
 	gnu-libiconv-dev
 	gtest-dev
 	icu-dev
-	libexecinfo-dev
 	libtool
 	linux-headers
 	make
