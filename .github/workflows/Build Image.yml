@@ -6,13 +6,13 @@ on:
       - '.github/**'
       - '**.md'
     tags: ["*"]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     name: Publish Package job
 
-    
     steps:
     -
       name: Checkout
@@ -47,16 +47,17 @@ jobs:
       uses: docker/metadata-action@v5
       with:
         images: |
-          name=ghcr.io/${{ github.repository_owner }}/ddddocr,enable=${{ steps.login-ghcr.outcome == 'success' }}
-          name=docker.io/a76yyyy/ddddocr,enable=${{ steps.login-dockerhub.outcome == 'success' }}
+          name=ghcr.io/${{ github.repository_owner }}/onnxruntime,enable=${{ steps.login-ghcr.outcome == 'success' }}
+          name=docker.io/a76yyyy/onnxruntime,enable=${{ steps.login-dockerhub.outcome == 'success' }}
         tags: |
+          type=edge,branch=main
           type=ref,event=tag
     -
-      name: Publish Latest Package
+      name: Publish Package
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile
-        platforms: linux/386,linux/arm64,linux/amd64,linux/arm/v6,linux/arm/v7,linux/ppc64le,linux/s390x # 你准备构建的镜像平台
+        platforms: linux/arm64,linux/amd64,linux/arm/v6,linux/arm/v7,linux/ppc64le # 你准备构建的镜像平台
         push: true
         tags: ${{ steps.meta.outputs.tags }}

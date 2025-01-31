@@ -1,19 +1,18 @@
-# **ddddocr-Docker**
+# **OnnxRuntime-Docker**
 
 ## **Repository**
 
-**Github :** [https://github.com/qd-today/ddddocr-docker](https://github.com/qd-today/ddddocr-docker)
+**Github :** [https://github.com/qd-today/onnxruntime-docker](https://github.com/qd-today/onnxruntime-docker)
 
-**DockerHub :** [https://hub.docker.com/r/a76yyyy/ddddocr](https://hub.docker.com/r/a76yyyy/ddddocr)
+**DockerHub :** [https://hub.docker.com/r/a76yyyy/onnxruntime](https://hub.docker.com/r/a76yyyy/onnxruntime)
 
 ```bash
-docker pull a76yyyy/ddddocr:latest
+docker pull a76yyyy/onnxruntime:latest
 ```
 
 ## **VERSION**
 
-- PYTHON_VERSION == 3.11
-- DDDDOCR_VERSION == LATEST(v1.4.7)
+- ONNX_VERSION == v1.20.1
 
 ## **Tips**
 
