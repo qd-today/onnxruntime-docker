@@ -13,9 +13,11 @@ ARG GIT_DOMAIN=https://github.com   #e.g., https://gh-proxy.com/https://github.c
 # Envirenment for onnxruntime
 ARG ONNX_VERSION=v1.20.1
 
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
-    # 替换为国内清华源
-    && sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+    # 如果 APK_MIRROR 存在, 替换为 APK_MIRROR, 需去除 APK_MIRROR 的 https:// 和 尾部 /
+    && if [ -n "$APK_MIRROR" ]; then \
+        sed -i "s/dl-cdn.alpinelinux.org/${APK_MIRROR//https:\/\//}/g" /etc/apk/repositories; \
+    fi \
     && apk add \
         --update-cache \
         abuild \
