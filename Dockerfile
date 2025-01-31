@@ -51,5 +51,5 @@ ARG TARGETPLATFORM
 COPY --from=onnxruntime-alpine-apk-builder /pkgs/apk/ /pkgs/apk/
 RUN apk add \
         --no-cache \
-        --allow-untrusted /pkgs/apk/*/*/*.apk \
-    && rm -rf /pkgs
+        --allow-untrusted /pkgs/apk/*/*/onnxruntime*.apk \
+    # && rm -rf /pkgs
