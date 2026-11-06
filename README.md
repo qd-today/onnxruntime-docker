@@ -1,5 +1,5 @@
 # onnxruntime Docker 镜像（Alpine）
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fqd-today%2Fonnxruntime-docker.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fqd-today%2Fonnxruntime-docker?ref=badge_shield)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B38165%2Fonnxruntime-docker.svg?type=shield)](https://app.fossa.com/projects/custom%2B38165%2Fonnxruntime-docker?ref=badge_shield)
 
 
 onnxruntime 与 numpy 的 musllinux wheel 分发，另附装好的可运行镜像。两个包都从 Alpine 的 apk
@@ -236,4 +236,4 @@ plan → build-wheel → build → smoke → publish。
 
 
 ## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fqd-today%2Fonnxruntime-docker.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fqd-today%2Fonnxruntime-docker?ref=badge_large)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B38165%2Fonnxruntime-docker.svg?type=large)](https://app.fossa.com/projects/custom%2B38165%2Fonnxruntime-docker?ref=badge_large)
