@@ -50,12 +50,16 @@ ARG BASE_IMAGE=alpine:${ALPINE_VERSION}
 FROM ${BASE_IMAGE} AS repack
 
 # platform tag 由 CI 按目标平台算好传进来（plan.py 的 python_host_platform）。
-# 为什么必须在 ENV 而不是某条 RUN 里 export：arm 容器在原生 arm64 runner 上走内核
-# compat 模式时 uname 报 aarch64，Python 的 sysconfig.get_platform() 与 EXT_SUFFIX
-# 都会跟着错——cmake 生成的扩展模块名错、打包时按正确 tag 去找就找不到 .so，
-# auditwheel 报 'no ELF executable or shared library file'。改在 ENV 才覆盖全流程。
+# 为什么需要它：arm 容器在原生 arm64 runner 上走内核 compat 模式时 uname 报 aarch64，
+# Python 的 sysconfig.get_platform() 与 EXT_SUFFIX 都会跟着错——cmake 生成的扩展模块名错、
+# 打包时按正确 tag 去找就找不到 .so，auditwheel 报 'no ELF executable or shared library file'。
+#
+# 但不能用 ENV 无条件设 _PYTHON_HOST_PLATFORM：没传 build-arg 时它是空串，而
+# sysconfig.get_platform() 只要看到这个变量存在就原样返回 —— 空串会让 pip 的平台标签
+# 全错（--find-links 里的 musllinux 轮子都匹配不上），wheel 名字也会变成
+# xxx-cp314-cp314-.whl 被 wheel pack 拒掉。所以只在真给了值时才 export，
+# 见下面每个跑 python 的 RUN 的第二行。
 ARG PYTHON_HOST_PLATFORM=""
-ENV _PYTHON_HOST_PLATFORM=${PYTHON_HOST_PLATFORM}
 
 
 ARG ONNX_VERSION=1.24.4
@@ -110,6 +114,7 @@ RUN apk add --no-cache \
         python3
 
 RUN set -eux; \
+    if [ -n "${PYTHON_HOST_PLATFORM}" ]; then export _PYTHON_HOST_PLATFORM="${PYTHON_HOST_PLATFORM}"; fi; \
     if [ -n "${PIP_MIRROR}" ]; then \
         pip_args="-i ${PIP_MIRROR}"; \
     else \
@@ -119,7 +124,10 @@ RUN set -eux; \
         ${pip_args} "auditwheel==${AUDITWHEEL_VERSION}"; \
     python3 -m auditwheel --version
 
-COPY src/pack_wheel.py /usr/local/bin/pack_wheel.py
+# 合规模块与许可证全文：pack_wheel.py 在收尾（--compliance）时按同目录 import。
+# 只进构建阶段，运行镜像里没有这些文件。
+COPY src/pack_wheel.py src/compliance.py /usr/local/bin/
+COPY src/licenses /usr/local/share/qdpack/licenses
 # apk 清单随 wheelhouse 发布，上层照单安装即可，不必各自维护
 COPY system-packages.txt /wheels/system-packages.txt
 
@@ -127,6 +135,7 @@ COPY system-packages.txt /wheels/system-packages.txt
 #   numpy         —— 包内 .so 是真文件，原样交给 auditwheel
 #   onnxruntime   —— capi 里是软链，多两步解引用 + 按 SONAME 命名
 RUN set -eux; \
+    if [ -n "${PYTHON_HOST_PLATFORM}" ]; then export _PYTHON_HOST_PLATFORM="${PYTHON_HOST_PLATFORM}"; fi; \
     site=/usr/lib/python3.14/site-packages; \
     python3 /usr/local/bin/pack_wheel.py \
         --from-apk "${site}" \
@@ -138,7 +147,7 @@ RUN set -eux; \
         --package onnxruntime \
         --out-dir /wheels \
         --expect-version "${ONNX_VERSION}"; \
-    python3 /usr/local/bin/pack_wheel.py --emit-index --out-dir /wheels; \
+    python3 /usr/local/bin/pack_wheel.py --emit-index --compliance --out-dir /wheels; \
     cd /wheels; \
     ls -l; \
     sha256sum ./*.whl > SHA256SUMS; \

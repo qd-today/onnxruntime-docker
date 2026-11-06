@@ -293,10 +293,28 @@ def metadata_version(pkg_info: Path) -> str:
     raise SystemExit(f"错误: {pkg_info} 里没有 Version:")
 
 
+def host_platform() -> str:
+    """打包机的平台标签（``linux_aarch64`` 这种）。
+
+    不能直接用 ``sysconfig.get_platform()``：Dockerfile 里为了跨架构把
+    ``_PYTHON_HOST_PLATFORM`` 设成了 ``$PYTHON_HOST_PLATFORM``，本地不传 build-arg
+    时它就是个**空串**，而 get_platform() 见到这个变量就原样返回 —— wheel 名字会变成
+    ``numpy-2.4.6-cp314-cp314-.whl``，被 ``wheel pack`` 判成 Bad wheel filename 直接
+    失败。这里补一个回退：值本身只是过渡用的，auditwheel 之后会把标签重打成
+    ``musllinux_1_2_<arch>``。
+    """
+    plat = sysconfig.get_platform()
+    if not plat:
+        import platform as _platform
+
+        plat = "linux-" + (_platform.machine() or "unknown")
+    return plat.replace("-", "_").replace(".", "_")
+
+
 def write_dist_info(unroot: Path, meta_dir: Path, version: str, package: str) -> Path:
     """把 apk 里的 dist-info/egg-info 变成 wheel 要的 dist-info 目录。"""
     major, minor = sys.version_info[:2]
-    plat_name = sysconfig.get_platform().replace("-", "_").replace(".", "_")
+    plat_name = host_platform()
     tag = f"cp{major}{minor}-cp{major}{minor}-{plat_name}"
     dist_info = unroot / f"{normalize_name(package)}-{version}.dist-info"
 
@@ -442,6 +460,18 @@ def emit_index(root: Path) -> int:
     return 0
 
 
+def run_compliance(out_dir: Path, deny: list[str], allow_unknown: bool = False) -> None:
+    """收尾的合规层：deny 断言 + NOTICE / SOURCE-OFFER / SBOM / 许可证全文。
+
+    本仓库的 wheel 是 Alpine py3-onnxruntime / py3-numpy 的重打包，随包的
+    abseil / re2 / libprotobuf-lite / libopenblas / libgfortran 全部来自 apk，
+    版本号由构建镜像的 apk 数据库反查得到，NOTICE 里能给出精确版本。
+    """
+    import compliance
+
+    compliance.run(out_dir, deny=deny or None, allow_unknown=allow_unknown)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--wheel-dir", help="含单个 setup.py 产物 wheel 的目录（源码路径）")
@@ -462,6 +492,23 @@ def main() -> int:
     )
     ap.add_argument("--out-dir", required=True, help="wheel 输出目录；--emit-index 时为索引所在目录")
     ap.add_argument(
+        "--compliance",
+        action="store_true",
+        help="配合 --emit-index：做 deny 断言并生成 NOTICE / SOURCE-OFFER / SBOM / 许可证全文",
+    )
+    ap.add_argument(
+        "--deny-lib",
+        action="append",
+        default=[],
+        metavar="GLOB",
+        help="禁止随包分发的库（可重复）；默认用 compliance.DEFAULT_DENY",
+    )
+    ap.add_argument(
+        "--allow-unknown",
+        action="store_true",
+        help="允许许可证无法识别的随包库（默认拦下，合规门禁里 unknown 等于未评估）",
+    )
+    ap.add_argument(
         "--lib-dir",
         default="",
         help="cmake 构建目录下的 onnxruntime/capi，作为依赖查找的补充路径（源码路径）",
@@ -479,6 +526,8 @@ def main() -> int:
 
     out_dir = Path(args.out_dir).resolve()
     if args.emit_index:
+        if args.compliance:
+            run_compliance(out_dir, args.deny_lib, args.allow_unknown)
         return emit_index(out_dir)
     if args.from_apk:
         return from_apk(Path(args.from_apk).resolve(), out_dir, args.package, args.expect_version)
