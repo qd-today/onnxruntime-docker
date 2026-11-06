@@ -1,0 +1,35 @@
+# FOSSA 扫描配置（版本 3，FOSSA CLI v2）
+#
+# 为什么需要这个文件
+# ------------------
+# 仓库里的 `src/licenses/*.txt` 是**随包分发的第三方许可证全文**，供构建时生成的
+# wheelhouse NOTICE 引用，不是本仓库的代码，也不会被链接进任何产物。
+#
+# 但 FOSSA 的源码 license 扫描会识别纯文本里的许可证正文，把这三个文件判定为
+# "本仓库包含 GPL/LGPL 代码"，在 revision f8ec21c 上产生了 3 条 licensing issue：
+#   - LGPL-2.1-or-later  <- src/licenses/LGPL-2.1.txt
+#   - LGPL-3.0-only      <- src/licenses/LGPL-3.0.txt
+#   - GPL-3.0-only       <- src/licenses/GPL-3.0.txt
+# 三条的 source 都是本仓库自身的 revision locator，而不是任何第三方依赖。
+#
+# 排除的影响范围
+# --------------
+# 这里的排除**只作用于源码 license 扫描**。CI 里 `upload-fossa.sh` 用
+# `dist/wheels/fossa-deps.yml` 上报的随包原生库（apk 引用 + 自编库）走的是完全
+# 不同的路径，不受本文件影响，照常上报、照常产生 flag（那批才是真正需要评估的）。
+#
+# 不写 project.locator：CI 通过 FOSSA_PROJECT 环境变量指定项目，避免两处配置打架。
+
+version: 3
+
+paths:
+  exclude:
+    - ./src/licenses
+
+# FOSSA 把项目源码内的 license 文本检测归在 vendored license scanning 下，
+# 因此还需要在这里排除一次；两处都写，避免不同扫描模式各认一份配置。
+vendoredDependencies:
+  licenseScanPathFilters:
+    exclude:
+      - "src/licenses/**"
+      - "**/src/licenses/**"
