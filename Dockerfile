@@ -134,6 +134,10 @@ COPY system-packages.txt /wheels/system-packages.txt
 # 两个包都走同一条 --from-apk 路径，产物落在同一个 /wheels：
 #   numpy         —— 包内 .so 是真文件，原样交给 auditwheel
 #   onnxruntime   —— capi 里是软链，多两步解引用 + 按 SONAME 命名
+# 末尾的 component-versions 是自编/改名库的版本落盘，compliance.py 从那里读（键名是
+# KNOWN 表里的组件名）。OpenBLAS 的文件被 auditwheel 改名成
+# libopenblas_armv8p-r0-<hash>.3.30.so，反查 apk 文件清单匹配不上，只能记为 custom，
+# 所以版本从 apk 的 openblas 包取。
 RUN set -eux; \
     if [ -n "${PYTHON_HOST_PLATFORM}" ]; then export _PYTHON_HOST_PLATFORM="${PYTHON_HOST_PLATFORM}"; fi; \
     site=/usr/lib/python3.14/site-packages; \
@@ -147,10 +151,6 @@ RUN set -eux; \
         --package onnxruntime \
         --out-dir /wheels \
         --expect-version "${ONNX_VERSION}"; \
-# 自编/改名的库的版本落盘给 compliance.py 读（键名是 KNOWN 表里的组件名）。
-# OpenBLAS 的文件被 auditwheel 改名成 libopenblas_armv8p-r0-<hash>.3.30.so，
-# 反查 apk 文件清单匹配不上，只能记为 custom——版本从 apk 的 openblas 包拿。
-RUN set -eux; \
     mkdir -p /wheels; \
     ob=$(apk info -v 2>/dev/null \
         | sed -n 's/^openblas-\([0-9][0-9.]*\)-r[0-9]*$/\1/p' | sort -V | tail -1) || true; \
