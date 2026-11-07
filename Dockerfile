@@ -147,6 +147,15 @@ RUN set -eux; \
         --package onnxruntime \
         --out-dir /wheels \
         --expect-version "${ONNX_VERSION}"; \
+# 自编/改名的库的版本落盘给 compliance.py 读（键名是 KNOWN 表里的组件名）。
+# OpenBLAS 的文件被 auditwheel 改名成 libopenblas_armv8p-r0-<hash>.3.30.so，
+# 反查 apk 文件清单匹配不上，只能记为 custom——版本从 apk 的 openblas 包拿。
+RUN set -eux; \
+    mkdir -p /wheels; \
+    ob=$(apk info -v 2>/dev/null \
+        | sed -n 's/^openblas-\([0-9][0-9.]*\)-r[0-9]*$/\1/p' | sort -V | tail -1) || true; \
+    if [ -n "${ob:-}" ]; then echo "OpenBLAS=${ob}" > /wheels/component-versions; fi; \
+    cat /wheels/component-versions 2>/dev/null || true; \
     python3 /usr/local/bin/pack_wheel.py --emit-index --compliance --out-dir /wheels; \
     cd /wheels; \
     ls -l; \
